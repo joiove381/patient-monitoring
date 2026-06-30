@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="환자확인">
+<title>2026년 환자확인 모니터링</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --primary: #1a5f9e;
+    --primary-light: #2979c9;
+    --primary-pale: #e8f1fa;
+    --accent: #e05c2a;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #1a2332;
+    --text-muted: #6b7a8d;
+    --border: #d0dae6;
+    --selected-bg: #1a5f9e;
+    --selected-text: #ffffff;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(26,95,158,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .app-header {
+    background: var(--primary);
+    color: white;
+    padding: 16px 20px 14px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(26,95,158,0.25);
+  }
+  .app-header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+  .app-header p { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+  .container { padding: 14px 14px 0; max-width: 480px; margin: 0 auto; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.3px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 13px;
+    background: var(--primary);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Date Input */
+  .date-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .date-input:focus { border-color: var(--primary); }
+
+  /* ── Numbered Button Layout ── */
+  /* Each item = circle number + label below */
+  .num-btn-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .num-btn-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .num-btn-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .num-btn-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .num-btn-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+  .nb-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .nb-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .nb-wrap:active .nb-circle { transform: scale(0.9); }
+  .nb-wrap.selected .nb-circle {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+  .nb-wrap.selected-multi .nb-circle {
+    background: #0d47a1;
+    border-color: #0d47a1;
+    color: white;
+  }
+  .nb-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.3;
+    word-break: keep-all;
+    font-weight: 500;
+  }
+  .nb-wrap.selected .nb-label { color: var(--primary); font-weight: 700; }
+  .nb-wrap.selected-multi .nb-label { color: #0d47a1; font-weight: 700; }
+
+  /* Detail place — plain buttons */
+  .detail-scroll { display: flex; flex-wrap: wrap; gap: 7px; }
+  .sel-btn {
+    border: 1.5px solid var(--border);
+    background: white;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    font-weight: 500;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .sel-btn:active { transform: scale(0.95); }
+  .sel-btn.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 600;
+  }
+
+  /* Text area */
+  .text-area {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    background: white;
+    outline: none;
+    resize: none;
+    transition: border-color 0.2s;
+    min-height: 60px;
+  }
+  .text-area:focus { border-color: var(--primary); }
+
+  /* Submit / Reset */
+  .submit-btn {
+    width: 100%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(26,95,158,0.3);
+  }
+  .submit-btn:active { transform: scale(0.97); }
+  .reset-btn {
+    width: 100%;
+    background: white;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* Tab */
+  .tab-bar {
+    display: flex;
+    background: white;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 11px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+  .tab-btn.active { background: var(--primary); color: white; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Records */
+  .no-records { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
+  .record-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .record-no { background: var(--primary); color: white; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; }
+  .record-date { font-size: 12px; color: var(--text-muted); }
+  .record-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; align-items: flex-start; }
+  .record-label { font-size: 11px; color: var(--text-muted); min-width: 60px; }
+  .record-value { font-size: 12px; font-weight: 500; flex: 1; }
+  .record-tag {
+    display: inline-block;
+    background: var(--primary-pale);
+    color: var(--primary);
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px 2px 2px 0;
+  }
+
+
+
+  .delete-all-btn {
+    width: 100%;
+    background: white;
+    color: #c62828;
+    border: 1.5px solid #c62828;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .delete-all-btn:active { background: #ffebee; transform: scale(0.97); }
+  .excel-btn {
+    width: 100%;
+    background: #1d6f42;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: "Noto Sans KR", sans-serif;
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 10px rgba(29,111,66,0.25);
+    transition: all 0.2s;
+  }
+  .excel-btn:active { transform: scale(0.97); }
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a2332;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .required-mark { color: var(--accent); margin-left: 2px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>🏥 환자확인 모니터링 기록지</h1>
+  <p>2026년 Patient Identification Monitoring</p>
+</div>
+
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('form',this)">📝 새 기록</button>
+    <button class="tab-btn" onclick="switchTab('records',this)">📋 기록 목록</button>
+  </div>
+
+  <!-- FORM TAB -->
+  <div id="tab-form" class="tab-content active">
+
+    <!-- 날짜 -->
+    <div class="card">
+      <div class="section-title">날짜</div>
+      <input type="date" class="date-input" id="dateInput">
+    </div>
+
+    <!-- 장소 -->
+    <div class="card">
+      <div class="section-title">장소 <span class="required-mark">*</span></div>
+      <div id="placeGrid"></div>
+    </div>
+
+    <!-- 상세장소 -->
+    <div class="card" id="detailCard" style="display:none;">
+      <div class="section-title">상세장소 <span class="required-mark">*</span></div>
+      <div class="detail-scroll" id="detailGrid"></div>
+    </div>
+
+    <!-- 직종 -->
+    <div class="card">
+      <div class="section-title">직종 <span class="required-mark">*</span></div>
+      <div id="jobGrid"></div>
+      <div id="jobEtcArea" style="margin-top:10px; display:none;">
+        <textarea class="text-area" id="jobEtcText" placeholder="기타 직종을 입력하세요..." style="min-height:50px;"></textarea>
+      </div>
+    </div>
+
+    <!-- 시점 -->
+    <div class="card">
+      <div class="section-title">시점 (1가지 시점만 체크) <span class="required-mark">*</span></div>
+      <div id="timingGrid"></div>
+      <div id="timingEtcArea" style="margin-top:10px; display:none;">
+        <textarea class="text-area" id="timingEtcText" placeholder="기타 내용을 입력하세요..." style="min-height:50px;"></textarea>
+      </div>
+    </div>
+
+    <!-- 환자참여 -->
+    <div class="card">
+      <div class="section-title">환자참여 (개방형 질문) <span class="required-mark">*</span></div>
+      <div id="participGrid"></div>
+    </div>
+
+    <!-- 두 가지 지표 확인 -->
+    <div class="card">
+      <div class="section-title">두 가지 지표 확인 <span class="required-mark">*</span></div>
+      <div id="indicGrid"></div>
+    </div>
+
+    <!-- 환자 정보 대조 -->
+    <div class="card">
+      <div class="section-title">환자가 가진 정보와 직원이 가진 정보로 대조하여 확인 <span class="required-mark">*</span></div>
+      <div id="infoGrid"></div>
+    </div>
+
+    <!-- 정확한 환자확인 시행여부 -->
+    <div class="card">
+      <div class="section-title">정확한 환자확인 시행 여부 <span class="required-mark">*</span></div>
+      <div id="correctGrid"></div>
+    </div>
+
+    <!-- 비고 -->
+    <div class="card">
+      <div class="section-title">비고 (복수 선택 가능)</div>
+      <div id="noteGrid"></div>
+      <div style="margin-top:10px;">
+        <textarea class="text-area" id="noteEtcText" placeholder="추가 내용을 입력하세요..."></textarea>
+      </div>
+    </div>
+
+    <!-- 현장 피드백 -->
+    <div class="card">
+      <div class="section-title">모니터링 현장 피드백 내용</div>
+      <div id="feedbackGrid"></div>
+      <textarea class="text-area" id="feedbackAddText" placeholder="피드백 내용을 입력하세요..."></textarea>
+    </div>
+
+    <button class="submit-btn" onclick="saveRecord()">✅ 기록 저장</button>
+    <button class="reset-btn" onclick="resetForm()">🔄 초기화</button>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- RECORDS TAB -->
+  <div id="tab-records" class="tab-content">
+    <button class="excel-btn" onclick="downloadExcel()">&#128202; 엑셀 다운로드 (.xlsx)</button>
+    <button class="delete-all-btn" onclick="deleteAll()">&#128465; 전체 삭제</button>
+    <div id="recordsList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const PLACES = [
+  '병동','중환자실','응급실','내시경실',
+  '인공신장실','외래','검사실','약제팀','수술실','재활치료실'
+];
+
+const DETAIL_MAP = {
+  '병동': ['5병동','6병동','7병동','8병동','9병동','10병동','11병동','12병동','13병동'],
+  '중환자실': ['1중환자실','2중환자실'],
+  '응급실': ['응급실'],
+  '내시경실': ['내시경실'],
+  '인공신장실': ['인공신장실'],
+  '외래': ['외래','일반검진센터','건강검진센터','주사실','낮병동','항암주사실','원무','채혈실'],
+  '검사실': ['영상의학과','진단검사의학과'],
+  '약제팀': ['약제팀'],
+  '수술실': ['수술실','혈관조영실'],
+  '재활치료실': ['물리치료실','운동치료실','작업치료실']
+};
+
+// label: 버튼 속 번호, text: 아래 표시 레이블, value: 저장값
+const JOBS = [
+  { label:'1', text:'의사', value:'의사' },
+  { label:'2', text:'간호사', value:'간호사' },
+  { label:'3', text:'간호조무사', value:'간호조무사' },
+  { label:'4', text:'임상병리사', value:'임상병리사' },
+  { label:'5', text:'방사선사', value:'방사선사' },
+  { label:'6', text:'물리/\n작업치료사', value:'물리/작업치료사' },
+  { label:'7', text:'이송직원', value:'이송직원' },
+  { label:'8', text:'행정직', value:'행정직' },
+  { label:'9', text:'약사', value:'약사' },
+  { label:'10', text:'기타', value:'기타', etc: true }
+];
+
+const TIMING = [
+  { label:'1', text:'(의사)\n진료 전', value:'(의사) 진료 전' },
+  { label:'2', text:'의약품\n투여 전', value:'의약품 투여 전' },
+  { label:'3', text:'혈액제제\n투여 전', value:'혈액제제 투여 전' },
+  { label:'4', text:'검사\n시행 전', value:'검사 시행 전' },
+  { label:'5', text:'처치 및\n시술 전', value:'처치 및 시술 전' },
+  { label:'6', text:'접수/\n수납 전', value:'접수/수납 전' },
+  { label:'7', text:'이송 전', value:'이송 전' },
+  { label:'8', text:'기타', value:'기타', etc: true }
+];
+
+const PARTICIP = [
+  { label:'1', text:'개방형\n질문', value:'개방형 질문' },
+  { label:'2', text:'폐쇄형\n질문', value:'폐쇄형 질문' },
+  { label:'3', text:'미시행', value:'미시행' },
+  { label:'4', text:'무의식\n환자', value:'무의식 환자' }
+];
+
+const INDIC = [
+  { label:'1', text:'두 가지\n지표 확인', value:'두 가지 지표 확인' },
+  { label:'2', text:'한 가지\n지표만 확인', value:'한 가지 지표만 확인' },
+  { label:'3', text:'미시행', value:'미시행' }
+];
+
+const INFO = [
+  { label:'1', text:'대조하여\n확인', value:'대조하여 확인' },
+  { label:'2', text:'대조군\n없음', value:'대조군 없음' },
+  { label:'3', text:'미시행', value:'미시행' }
+];
+
+const CORRECT = [
+  { label:'1', text:'정확', value:'정확' },
+  { label:'2', text:'부정확', value:'부정확' },
+  { label:'3', text:'미시행', value:'미시행' }
+];
+
+// Notes and feedbacks use plain full-text buttons (no number circles)
+const NOTES = [
+  { text:'폐쇄형으로 이름 호명', value:'폐쇄형으로 이름 호명' },
+  { text:'등록번호 확인 안함', value:'등록번호 확인 안함' },
+  { text:'등록번호와 전산(기타 출력물) 대조안함', value:'등록번호와 전산(기타 출력물) 대조안함' }
+];
+
+const FEEDBACKS = [];
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  date:'', place:'', detail:'', job:'', jobEtc:'',
+  timing:'', timingEtc:'', particip:'', indic:'',
+  info:'', correct:'', notes:[], noteEtc:'',
+  feedbacks:[], feedbackAdd:''
+};
+
+let records = JSON.parse(localStorage.getItem('patientMonRecords') || '[]');
+let nextNo = records.length > 0 ? Math.max(...records.map(r=>r.no)) + 1 : 1;
+
+// ============================================================
+// BUILD NUMBERED BUTTON GRID
+// cols: how many columns
+// multi: allow multi-select
+// onSelect(item, wrap): optional callback
+// ============================================================
+function buildNumGrid(containerId, items, cols, stateKey, multi, onSelect) {
+  const container = document.getElementById(containerId);
+  container.className = `num-btn-grid cols-${cols}`;
+  container.innerHTML = '';
+  items.forEach(item => {
+    const wrap = document.createElement('div');
+    wrap.className = 'nb-wrap';
+
+    const circle = document.createElement('div');
+    circle.className = 'nb-circle';
+    circle.textContent = item.label;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'nb-label';
+    lbl.textContent = item.text.replace(/\\n/g, '\n');
+    lbl.style.whiteSpace = 'pre-line';
+
+    wrap.appendChild(circle);
+    wrap.appendChild(lbl);
+
+    wrap.onclick = () => {
+      if (multi) {
+        wrap.classList.toggle('selected-multi');
+        if (!Array.isArray(state[stateKey])) state[stateKey] = [];
+        if (wrap.classList.contains('selected-multi')) {
+          if (!state[stateKey].includes(item.value)) state[stateKey].push(item.value);
+        } else {
+          state[stateKey] = state[stateKey].filter(x => x !== item.value);
+        }
+      } else {
+        container.querySelectorAll('.nb-wrap').forEach(w => w.classList.remove('selected'));
+        wrap.classList.add('selected');
+        state[stateKey] = item.value;
+        state[stateKey + '_num'] = item.label;
+      }
+      if (onSelect) onSelect(item, wrap);
+    };
+    container.appendChild(wrap);
+  });
+}
+
+// Plain full-width toggle buttons (for notes/feedback)
+function buildToggleGrid(containerId, items, stateKey, onSelect) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '7px';
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'sel-btn';
+    btn.style.textAlign = 'left';
+    btn.style.width = '100%';
+    btn.style.padding = '12px 14px';
+    btn.style.fontSize = '13px';
+    btn.textContent = item.text;
+    btn.onclick = () => {
+      btn.classList.toggle('selected');
+      if (!Array.isArray(state[stateKey])) state[stateKey] = [];
+      if (btn.classList.contains('selected')) {
+        if (!state[stateKey].includes(item.value)) state[stateKey].push(item.value);
+      } else {
+        state[stateKey] = state[stateKey].filter(x => x !== item.value);
+      }
+      if (onSelect) onSelect(item, btn);
+    };
+    container.appendChild(btn);
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function init() {
+  document.getElementById('dateInput').value = todayStr();
+  state.date = todayStr();
+  document.getElementById('dateInput').addEventListener('change', e => { state.date = e.target.value; });
+
+  // Place: numbered grid 4 cols (10 items → 3 rows of 3+3+4 approx)
+  buildNumGrid('placeGrid', PLACES.map((p,i) => ({ label: String(i+1), text: p, value: p })), 4, 'place', false, (item) => {
+    state.place = item.value;
+    state.place_num = item.label;
+    state.detail = '';
+    buildDetailGrid(item.value);
+  });
+
+  // Job: 5 cols (10 items → 2 rows)
+  buildNumGrid('jobGrid', JOBS, 5, 'job', false, (item) => {
+    state.job = item.value;
+    const area = document.getElementById('jobEtcArea');
+    area.style.display = item.etc ? 'block' : 'none';
+    if (!item.etc) { state.jobEtc = ''; document.getElementById('jobEtcText').value = ''; }
+  });
+
+  // Timing: 4 cols (8 items, 2 rows)
+  buildNumGrid('timingGrid', TIMING, 4, 'timing', false, (item) => {
+    state.timing = item.value;
+    const area = document.getElementById('timingEtcArea');
+    area.style.display = item.etc ? 'block' : 'none';
+    if (!item.etc) { state.timingEtc = ''; document.getElementById('timingEtcText').value = ''; }
+  });
+
+  // Particip: 4 cols
+  buildNumGrid('participGrid', PARTICIP, 4, 'particip', false, null);
+
+  // Indic: 3 cols
+  buildNumGrid('indicGrid', INDIC, 3, 'indic', false, null);
+
+  // Info: 3 cols
+  buildNumGrid('infoGrid', INFO, 3, 'info', false, null);
+
+  // Correct: 3 cols
+  buildNumGrid('correctGrid', CORRECT, 3, 'correct', false, null);
+
+  // Notes: toggle list
+  buildToggleGrid('noteGrid', NOTES, 'notes', null);
+
+  // Feedbacks: toggle list
+  buildToggleGrid('feedbackGrid', FEEDBACKS, 'feedbacks', null);
+
+  document.getElementById('jobEtcText').addEventListener('input', e => { state.jobEtc = e.target.value; });
+  document.getElementById('timingEtcText').addEventListener('input', e => { state.timingEtc = e.target.value; });
+  document.getElementById('noteEtcText').addEventListener('input', e => { state.noteEtc = e.target.value; });
+  document.getElementById('feedbackAddText').addEventListener('input', e => { state.feedbackAdd = e.target.value; });
+}
+
+function buildDetailGrid(place) {
+  const details = DETAIL_MAP[place] || [];
+  const card = document.getElementById('detailCard');
+  const grid = document.getElementById('detailGrid');
+  grid.innerHTML = '';
+  state.detail = '';
+  if (details.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  details.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'sel-btn';
+    btn.textContent = d;
+    btn.onclick = () => {
+      grid.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      state.detail = d;
+    };
+    grid.appendChild(btn);
+  });
+  if (details.length === 1) {
+    grid.querySelector('.sel-btn').classList.add('selected');
+    state.detail = details[0];
+  }
+}
+
+// ============================================================
+// SAVE
+// ============================================================
+function saveRecord() {
+  state.date = document.getElementById('dateInput').value;
+  const required = [
+    [state.place, '장소'],
+    [state.detail, '상세장소'],
+    [state.job, '직종'],
+    [state.timing, '시점'],
+    [state.particip, '환자참여'],
+    [state.indic, '두 가지 지표 확인'],
+    [state.info, '환자 정보 대조'],
+    [state.correct, '정확한 환자확인 시행여부']
+  ];
+  for (const [val, label] of required) {
+    if (!val) { showToast(`⚠️ ${label}을(를) 선택해주세요`); return; }
+  }
+
+  const jobDisplay = state.job === '기타' && state.jobEtc ? `기타(${state.jobEtc})` : state.job;
+  const timingDisplay = state.timing === '기타' && state.timingEtc ? `기타(${state.timingEtc})` : state.timing;
+
+  const record = {
+    no: nextNo++,
+    date: state.date,
+    place: state.place,
+    placeNum: state.place_num || '',
+    detail: state.detail,
+    job: jobDisplay,
+    jobNum: (state.job_num||'') + (state.job==='기타' && state.jobEtc ? '('+state.jobEtc+')' : ''),
+    timing: timingDisplay,
+    timingNum: (state.timing_num||'') + (state.timing==='기타' && state.timingEtc ? '('+state.timingEtc+')' : ''),
+    particip: state.particip,
+    participNum: state.particip_num || '',
+    indic: state.indic,
+    indicNum: state.indic_num || '',
+    info: state.info,
+    infoNum: state.info_num || '',
+    correct: state.correct,
+    correctNum: state.correct_num || '',
+    notes: [...state.notes],
+    noteEtc: state.noteEtc,
+    feedbacks: [...state.feedbacks],
+    feedbackAdd: state.feedbackAdd
+  };
+
+  records.push(record);
+  localStorage.setItem('patientMonRecords', JSON.stringify(records));
+  showToast('✅ 기록이 저장되었습니다');
+  resetForm();
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetForm() {
+  state = {
+    date: document.getElementById('dateInput').value,
+    place:'', detail:'', job:'', jobEtc:'',
+    timing:'', timingEtc:'', particip:'', indic:'',
+    info:'', correct:'', notes:[], noteEtc:'',
+    feedbacks:[], feedbackAdd:''
+  };
+  document.querySelectorAll('.nb-wrap').forEach(w => w.classList.remove('selected','selected-multi'));
+  document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('detailCard').style.display = 'none';
+  document.getElementById('detailGrid').innerHTML = '';
+  ['jobEtcArea','timingEtcArea'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  ['jobEtcText','timingEtcText','noteEtcText','feedbackAddText'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+// ============================================================
+// RECORDS
+// ============================================================
+function renderRecords() {
+  const container = document.getElementById('recordsList');
+  if (records.length === 0) {
+    container.innerHTML = '<div class="no-records">📋 아직 저장된 기록이 없습니다</div>';
+    return;
+  }
+  const sorted = [...records].reverse();
+  container.innerHTML = sorted.map(r => `
+    <div class="record-card">
+      <div class="record-header">
+        <span class="record-no">No. ${r.no}</span>
+        <span class="record-date">📅 ${r.date}</span>
+        <button onclick="deleteRecord(${r.no})" style="border:none;background:none;color:#e05c2a;font-size:18px;cursor:pointer;padding:0 4px;">🗑</button>
+      </div>
+      <div class="record-row"><span class="record-label">장소</span><span class="record-value">${r.place} › ${r.detail}</span></div>
+      <div class="record-row"><span class="record-label">직종</span><span class="record-value">${r.job}</span></div>
+      <div class="record-row"><span class="record-label">시점</span><span class="record-value">${r.timing}</span></div>
+      <div class="record-row"><span class="record-label">환자참여</span><span class="record-value">${r.particip}</span></div>
+      <div class="record-row"><span class="record-label">지표확인</span><span class="record-value">${r.indic}</span></div>
+      <div class="record-row"><span class="record-label">정보대조</span><span class="record-value">${r.info}</span></div>
+      <div class="record-row"><span class="record-label">시행여부</span>
+        <span class="record-value" style="font-weight:700;color:${r.correct==='정확'?'#2e7d32':r.correct==='부정확'?'#c62828':'#888'}">${r.correct}</span>
+      </div>
+      ${r.notes && r.notes.length > 0 ? `
+      <div class="record-row"><span class="record-label">비고</span>
+        <span class="record-value">${r.notes.map(n=>`<span class="record-tag">${n}</span>`).join('')}${r.noteEtc?`<br><span style="font-size:11px;color:#555;margin-top:3px;display:block">${r.noteEtc}</span>`:''}</span>
+      </div>` : ''}
+      ${r.feedbacks && r.feedbacks.length > 0 ? `
+      <div class="record-row"><span class="record-label">피드백</span>
+        <span class="record-value">${r.feedbacks.map(f=>`<span class="record-tag">${f}</span>`).join('')}${r.feedbackAdd?`<br><span style="font-size:11px;color:#555;margin-top:3px;display:block">${r.feedbackAdd}</span>`:''}</span>
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+
+
+function deleteAll() {
+  if (records.length === 0) { showToast('삭제할 기록이 없습니다'); return; }
+  if (!confirm('전체 기록 ' + records.length + '건을 모두 삭제할까요?\n(엑셀 다운로드 후 삭제를 권장합니다)')) return;
+  records = [];
+  nextNo = 1;
+  localStorage.setItem('patientMonRecords', JSON.stringify(records));
+  renderRecords();
+  showToast('✅ 전체 기록이 삭제되었습니다');
+}
+
+function deleteRecord(no) {
+  if (!confirm('이 기록을 삭제할까요?')) return;
+  records = records.filter(r => r.no !== no);
+  localStorage.setItem('patientMonRecords', JSON.stringify(records));
+  renderRecords();
+}
+
+// ============================================================
+// TAB / TOAST
+// ============================================================
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'records') renderRecords();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+
+function downloadExcel() {
+  if (records.length === 0) { showToast('저장된 기록이 없습니다'); return; }
+  const headers = ['No','날짜','장소','상세장소','직종','시점','환자참여','두 가지 지표 확인','정보 대조 확인','환자확인 시행여부','비고','비고(그 외)','현장 피드백','피드백 내용'];
+  const rows = records.map(r => [r.no, r.date, r.placeNum||r.place, r.detail, r.jobNum||r.job, r.timingNum||r.timing, r.participNum||r.particip, r.indicNum||r.indic, r.infoNum||r.info, r.correctNum||r.correct, (r.notes||[]).join(', '), r.noteEtc||'', (r.feedbacks||[]).join(', '), r.feedbackAdd||'']);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:5},{wch:12},{wch:10},{wch:14},{wch:12},{wch:14},{wch:12},{wch:16},{wch:18},{wch:18},{wch:30},{wch:20},{wch:14},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, '환자확인모니터링');
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb, '환자확인모니터링_' + today + '.xlsx');
+  showToast('엑셀 파일 다운로드 완료!');
+}
+
+init();
+</script>
+</body>
+</html>
